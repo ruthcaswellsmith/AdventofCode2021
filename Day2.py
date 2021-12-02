@@ -3,14 +3,13 @@ import numpy as np
 def part_one(filename=None):
 
     with open(filename, 'r') as f:
-        data = f.readlines()
+        data = f.read().rstrip('\n').split('\n')
     f.close()
 
     position = np.zeros(2)
     num_inputs = len(data)
     for ind in range(num_inputs):
 
-        data[ind] = data[ind].strip('\n')
         (direction, amount) = data[ind].split(' ')
         if direction == 'forward':
             position[0] += int(amount)
@@ -24,14 +23,13 @@ def part_one(filename=None):
 def part_two(filename=None):
 
     with open(filename, 'r') as f:
-        data = f.readlines()
+        data = f.read().rstrip('\n').split('\n')
     f.close()
 
     position = np.zeros(3)
     num_inputs = len(data)
     for ind in range(num_inputs):
 
-        data[ind] = data[ind].strip('\n')
         (direction, amount) = data[ind].split(' ')
         if direction == 'forward':
             position[0] += int(amount)
