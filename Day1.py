@@ -3,7 +3,8 @@ import numpy as np
 def count_increases(measurements):
 
     counter = 0
-    for ind in range(1, len(measurements)):
+    num_measurmeents = len(measurements)
+    for ind in range(1, num_measurmeents):
         counter = counter + 1 if measurements[ind] > measurements[ind-1] else counter
 
     return counter
