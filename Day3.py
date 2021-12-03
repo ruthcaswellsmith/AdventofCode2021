@@ -1,58 +1,65 @@
 import numpy as np
 from scipy import stats
 from functools import reduce
-from stream import Stream
 
-def part_one(array=None):
+class Report():
 
-    modes = stats.mode(array)[0][0]
+    def __init__(self, array):
 
-    gamma = to_decimal(modes)
-    epsilon = to_decimal(1 - modes)
+        self.array = array
 
-    print(f'The power consumption is {gamma*epsilon}')
+    def get_power_consumption(self):
 
-def bit_critera(array, type='oxygen'):
+        modes = stats.mode(self.array)[0][0]
 
-    count_0 = np.count_nonzero(array==0)
-    count_1 = np.count_nonzero(array==1)
+        gamma = self.__to_decimal(modes)
+        epsilon = self.__to_decimal(1 - modes)
 
-    if count_0 == count_1:
-        return 1 if type == 'oxygen' else 0
+        print(f'The power consumption is {gamma * epsilon}')
 
-    elif count_1 > count_0:
-        return 1 if type == 'oxygen' else 0
+    def get_life_support_rating(self):
 
-    else:
-        return 0 if type == 'oxygen' else 1
+        oxygen_rating = self.__get_rating(type='oxygen')
+        print(f'The oxygen generator rating is {oxygen_rating}')
 
-def part_two(array=None):
+        CO2_rating = self.__get_rating(type='CO2')
+        print(f'The CO2 scrubber rating is {CO2_rating}')
 
-    oxygen_rating = get_rating(array, type='oxygen')
-    print(f'The oxygen generator rating is {oxygen_rating}')
+        print(f'the life support rating is {oxygen_rating * CO2_rating}')
 
-    CO2_rating = get_rating(array, type='CO2')
-    print(f'The CO2 scrubber rating is {CO2_rating}')
+    def __get_rating(self, type='oxygen'):
 
-    print(f'the life support rating is {oxygen_rating * CO2_rating}')
+        array = self.array
+        j = 0
+        while len(array) > 1:
+            bit = self.__bit_critera(array[:, j], type=type)
 
-def get_rating(array, type='oxygen'):
+            rows = np.where(array[:, j] == bit)
+            array = array[rows]
 
-    j = 0
-    while len(array) > 1:
+            j += 1
 
-        bit = bit_critera(array[:, j], type=type)
+        return self.__to_decimal(array[0])
 
-        rows = np.where(array[:,j] == bit)
-        array = array[rows]
+    @staticmethod
+    def __to_decimal(binary_array):
+        return reduce(lambda a, b: 2 * a + b, binary_array)
 
-        j += 1
+    @staticmethod
+    def __bit_critera(array, type='oxygen'):
 
-    return to_decimal(array[0])
+        count_0 = np.count_nonzero(array == 0)
+        count_1 = np.count_nonzero(array == 1)
 
+        if count_0 == count_1:
+            return 1 if type == 'oxygen' else 0
 
-def to_decimal(binary_array):
-    return reduce(lambda a, b: 2 * a + b, binary_array)
+        elif count_1 > count_0:
+            return 1 if type == 'oxygen' else 0
+
+        else:
+            return 0 if type == 'oxygen' else 1
+
 
 def convert_to_array(filename):
 
@@ -72,6 +79,8 @@ if __name__ == "__main__":
     filename = "input/Day3.txt"
     array = convert_to_array(filename)
 
-    part_one(array=array)
+    report = Report(array)
 
-    part_two(array=array)
+    report.get_power_consumption()
+
+    report.get_life_support_rating()
