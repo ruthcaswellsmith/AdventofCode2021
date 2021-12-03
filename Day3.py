@@ -30,35 +30,28 @@ def bit_critera(array, type='oxygen'):
 
 def part_two(array=None):
 
-    saved_array = array
-    j = 0
-    while len(array) > 1:
-
-        bit = bit_critera(array[:,j], type='oxygen')
-
-        # Now filter our array to just those which match that bit
-        array = np.array(Stream(array).filter(lambda x: x[j] == bit).toList())
-
-        j += 1
-
-    oxygen_rating = to_decimal(array[0])
+    oxygen_rating = get_rating(array, type='oxygen')
     print(f'The oxygen generator rating is {oxygen_rating}')
 
-    array = saved_array
+    CO2_rating = get_rating(array, type='CO2')
+    print(f'The CO2 scrubber rating is {CO2_rating}')
+
+    print(f'the life support rating is {oxygen_rating * CO2_rating}')
+
+def get_rating(array, type='oxygen'):
+
     j = 0
     while len(array) > 1:
 
-        bit = bit_critera(array[:, j], type='C02')
+        bit = bit_critera(array[:, j], type=type)
 
         rows = np.where(array[:,j] == bit)
         array = array[rows]
 
         j += 1
 
-    CO2_rating = to_decimal(array[0])
-    print(f'The CO2 scrubber rating is {CO2_rating}')
+    return to_decimal(array[0])
 
-    print(f'the life support rating is {oxygen_rating * CO2_rating}')
 
 def to_decimal(binary_array):
     return reduce(lambda a, b: 2 * a + b, binary_array)
