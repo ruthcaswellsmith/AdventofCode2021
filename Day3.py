@@ -18,15 +18,13 @@ def bit_critera(array, type='oxygen'):
     count_1 = np.count_nonzero(array==1)
 
     if count_0 == count_1:
-        if type == 'oxygen':
-            return 1
-        else:
-            return 0
+        return 1 if type == 'oxygen' else 0
+
+    elif count_1 > count_0:
+        return 1 if type == 'oxygen' else 0
+
     else:
-        if type == 'oxygen':
-            return 1 if count_1 > count_0 else 0
-        else:
-            return 1 if count_1 < count_0 else 0
+        return 0 if type == 'oxygen' else 1
 
 def part_two(array=None):
 
