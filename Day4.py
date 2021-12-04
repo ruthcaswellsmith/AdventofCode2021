@@ -52,30 +52,18 @@ class Game():
 class Board():
 
     def __init__(self, squares):
-
         self.squares = squares
-        self.marked = np.zeros((SIZE, SIZE))
+        self.matched = np.zeros((SIZE, SIZE), dtype=bool)
         self.is_winner = False
 
     def play_number(self, number):
+        self.matched = np.where(self.squares == number, True, self.matched)
 
-        for i in range(SIZE):
-            for j in range(SIZE):
-                if self.squares[i, j] == number:
-                    self.marked[i, j] = 1
-
-        for i in range(SIZE):
-            if self.marked[i, :].sum() == SIZE or self.marked[:, i].sum() == SIZE:
-                self.is_winner = True
+        if SIZE in self.matched.sum(axis=0) or SIZE in self.matched.sum(axis=1):
+            self.is_winner = True
 
     def get_score(self, current_number):
-
-        score = 0
-        for i in range(SIZE):
-            score += self.squares[i, :][np.where(self.marked[i, :] == 0)].sum()
-
-        print(score, current_number)
-        return current_number * score
+        return current_number * self.squares[np.where(self.matched == False)].sum()
 
 
 def process_file(filename):
@@ -104,7 +92,7 @@ def process_file(filename):
 
 
 if __name__ == "__main__":
-    filename = "input/Day4.txt"
+    filename = "input/test.txt"
 
     game = process_file(filename)
 
