@@ -94,7 +94,6 @@ def process_file(filename):
 
         squares = []
         for i in range(SIZE):
-            temp = int(data[i][0:0+2])
             row = [int(data[i][ind:ind+2]) for ind in [j*3 for j in range(SIZE)]]
             squares.append(row)
 
