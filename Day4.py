@@ -75,8 +75,6 @@ def process_file(filename):
     data = data[2:]
 
     boards = []
-    board_num = 0
-
     while data:
 
         squares = []
@@ -92,7 +90,7 @@ def process_file(filename):
 
 
 if __name__ == "__main__":
-    filename = "input/test.txt"
+    filename = "input/Day4.txt"
 
     game = process_file(filename)
 
