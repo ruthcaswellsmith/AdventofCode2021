@@ -36,13 +36,13 @@ class Game():
                 current_number = self.__get_new_number()
                 self.__play_round(current_number)
 
-            print(f'The winning score is {self.boards[self.winners.index(1)].get_score(current_number)}')
+            print(f'The winning score is {self.boards[self.winners.index(True)].get_score(current_number)}')
 
         elif game_type == '2':
 
             while sum(self.winners) < self.num_boards:
 
-                last_winner = self.winners.index(0)
+                last_winner = self.winners.index(False)
 
                 current_number = self.__get_new_number()
                 self.__play_round(current_number)
@@ -55,7 +55,7 @@ class Board():
 
         self.squares = squares
         self.marked = np.zeros((SIZE, SIZE))
-        self.is_winner = 0
+        self.is_winner = False
 
     def play_number(self, number):
 
@@ -66,7 +66,7 @@ class Board():
 
         for i in range(SIZE):
             if self.marked[i,:].sum() == SIZE or self.marked[:,i].sum() == SIZE:
-                self.is_winner = 1
+                self.is_winner = True
 
     def get_score(self, current_number):
 
