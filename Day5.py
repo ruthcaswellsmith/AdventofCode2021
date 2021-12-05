@@ -72,7 +72,7 @@ class Diagram():
 
     def get_overlap(self):
 
-        print(f'The number of overlapping points is {len(self.points[np.where(self.points > 1)])}')
+        return len(self.points[np.where(self.points > 1)])
 
 def process_file(filename):
 
@@ -99,8 +99,8 @@ if __name__ == "__main__":
 
     diagram = Diagram()
     diagram.populate(lines, Part.PART_ONE)
-    diagram.get_overlap()
+    print(f'The number of overlapping points for Part One is {diagram.get_overlap()}')
 
     diagram = Diagram()
     diagram.populate(lines, Part.PART_TWO)
-    diagram.get_overlap()
+    print(f'The number of overlapping points for Part Two is {diagram.get_overlap()}')
