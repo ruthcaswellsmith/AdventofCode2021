@@ -1,35 +1,29 @@
 import numpy as np
 from enum import Enum, auto
 
-CYCLE = 7
-
-class Fish():
-
-    def __init__(self, days):
-        self.days = days
+SIZE = 9
 
 class School():
 
-    def __init__(self, fish):
-        self.fish = fish
+    def __init__(self):
+        self.fish = np.zeros(SIZE)
+
+    def populate(self, days):
+
+        for days_to_spawn in days:
+            self.fish[days_to_spawn] += 1
 
     def __live_a_day(self):
 
-        num_fish = len(self.fish)
-        for fish in self.fish[:num_fish]:
-            if fish.days == 0:
-                fish.days = CYCLE - 1
-                self.fish.append(Fish(days=8))
-            else:
-                fish.days -= 1
-
+        spawning_fish = self.fish[0]
+        for day in range(8):
+            self.fish[day] = self.fish[day + 1] + spawning_fish if day == 6 else self.fish[day + 1]
+        self.fish[8] = spawning_fish
 
     def live_n_days(self, days):
 
-        day = 0
-        while day < days:
+        for day in range(days):
             self.__live_a_day()
-            day += 1
 
 def process_file(filename):
 
@@ -37,18 +31,15 @@ def process_file(filename):
         days = np.loadtxt(f, dtype=int, delimiter=',')
     f.close()
 
-    fish = []
-    for day in days:
-        fish.append(Fish(day))
-
-    return fish
+    return days
 
 if __name__ == "__main__":
 
-    filename = "input/test.txt"
-    fish = process_file(filename)
+    filename = "input/Day6.txt"
+    days = process_file(filename)
 
-    school = School(fish)
+    school = School()
+    school.populate(days)
     total_days = 256
     school.live_n_days(total_days)
-    print(f'The total fish after {total_days} is {len(school.fish)}')
+    print(f'The total fish after {total_days} is {int(sum(school.fish))}')
