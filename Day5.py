@@ -1,5 +1,6 @@
 import numpy as np
 from enum import Enum, auto
+from typing import List
 
 SIZE = 1000
 
@@ -16,13 +17,13 @@ class Part(str, Enum):
 
 class Point():
 
-    def __init__(self, point):
+    def __init__(self, point: List):
         self.x = int(point[0])
         self.y = int(point[1])
 
 class Line():
 
-    def __init__(self, p1, p2):
+    def __init__(self, p1: Point, p2: Point):
 
         self.p1 = p1
         self.p2 = p2
@@ -57,7 +58,7 @@ class Diagram():
                 self.__process_line(line)
 
 
-    def __process_line(self, line):
+    def __process_line(self, line: Line):
 
         x, y = line.p1.x, line.p1.y
 
