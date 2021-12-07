@@ -17,23 +17,22 @@ class Crabs():
 
         fuels = []
         for i in range(len(self.positions) + 1):
-
             fuels.append(self.__calculate_fuel(i, part))
 
         return min(fuels)
 
     def __calculate_fuel(self, target: int, part: PART):
 
-        if part == PART.PART_ONE:
-            return sum(abs( self.positions - target * np.ones(self.num_crabs, dtype=int)))
-
-        else:
-            diffs = abs(self.positions - target * np.ones(self.num_crabs, dtype=int))
-            return sum(np.vectorize(self.__fuel_cost)(diffs))
+        diffs = abs(self.positions - target * np.ones(self.num_crabs, dtype=int))
+        return sum(np.vectorize(self.__fuel_cost)(diffs, part))
 
     @staticmethod
-    def __fuel_cost(n):
-        return int(n * (n+1) / 2)
+    def __fuel_cost(n, part: PART):
+
+        if part == PART.PART_ONE:
+            return n
+        else:
+            return int(n * (n+1) / 2)
 
 def process_file(filename):
 
@@ -49,7 +48,7 @@ if __name__ == "__main__":
     crabs = Crabs(positions)
 
     fuel = crabs.get_best_position(PART.PART_ONE)
-    print(f'They must spend {fuel} fuel to get to the best position.')
+    print(f'P1: They must spend {fuel} fuel to get to the best position.')
 
     fuel = crabs.get_best_position(PART.PART_TWO)
-    print(f'They must spend {fuel} fuel to get to the best position.')
+    print(f'P2: They must spend {fuel} fuel to get to the best position.')
