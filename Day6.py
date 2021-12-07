@@ -27,9 +27,7 @@ class School():
 
 def process_file(filename):
 
-    with open(filename, 'r') as f:
-        days = np.loadtxt(f, dtype=int, delimiter=',')
-    f.close()
+    days = np.loadtxt(filename, dtype=int, delimiter=',')
 
     return days
 
