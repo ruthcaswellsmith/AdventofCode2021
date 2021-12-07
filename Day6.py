@@ -8,7 +8,7 @@ class School():
     def __init__(self):
         self.fish = np.zeros(SIZE)
 
-    def populate(self, days):
+    def populate(self, days: np.ndarray):
 
         for days_to_spawn in days:
             self.fish[days_to_spawn] += 1
@@ -20,7 +20,7 @@ class School():
             self.fish[day] = self.fish[day + 1] + spawning_fish if day == 6 else self.fish[day + 1]
         self.fish[8] = spawning_fish
 
-    def live_n_days(self, days):
+    def live_n_days(self, days: int):
 
         for day in range(days):
             self.__live_a_day()
