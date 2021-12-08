@@ -65,7 +65,6 @@ def convert_to_array(filename):
 
     with open(filename, 'r') as f:
         data = f.read().rstrip('\n').split('\n')
-    f.close()
 
     array = []
     num_rows = len(data)
