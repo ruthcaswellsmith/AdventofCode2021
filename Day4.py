@@ -67,9 +67,9 @@ class Board():
 
 
 def process_file(filename):
+
     with open(filename, 'r') as f:
         data = f.read().rstrip('\n').split('\n')
-    f.close()
 
     numbers = np.array(data[0].split(',')).astype(int)
     data = data[2:]
