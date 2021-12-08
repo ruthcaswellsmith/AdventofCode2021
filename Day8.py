@@ -2,11 +2,6 @@ import numpy as np
 from enum import Enum, auto
 from typing import List
 
-class PART(str, Enum):
-
-    PART_ONE = auto()
-    PART_TWO = auto()
-
 NUMBERS = {
     0: {'a', 'b', 'c', 'e', 'f', 'g'},
     1: {'c', 'f'},
@@ -41,7 +36,7 @@ class Note():
 
     def get_mapping(self):
 
-        # Now find out which two are c and f
+        # Find out which two are c and f
         c_and_f = self.__get_signal_patterns_of_length(2)[0]
 
         # Find out which one is a.  It is the one that is in a 3-length but not in c_and_f
@@ -53,6 +48,8 @@ class Note():
 
         # Find b_and_d.  They are number of length 4 but not number of length 2
         b_and_d = self.__get_signal_patterns_of_length(4)[0] - c_and_f
+
+        # Find which is d.  Is it the one that is in every 6-length
         self.__map_based_on_length_six(b_and_d, 'd', 'b')
 
         # Now find g.  It is the only letter in every length 6 that is not already mapped
@@ -60,7 +57,6 @@ class Note():
         possible_gs = signals_6[0]
         for signal in signals_6:
             possible_gs.intersection_update(signal)
-
         key = next(iter(possible_gs - set(self.mapping.keys())))
         self.mapping[key] = 'g'
 
@@ -72,7 +68,6 @@ class Note():
 
         signals_6 = self.__get_signal_patterns_of_length(6)
         for letter in letters:
-
             if sum([letter in item for item in signals_6]) == len(signals_6):
                 self.mapping[letter] = letter2
                 self.mapping[next(iter(letters - set(letter)))] = letter1
@@ -87,12 +82,8 @@ class Note():
         digits = []
         for output_value in self.output_values:
 
-            decoded_output_value = set()
-            for elem in output_value:
-                decoded_output_value.add(self.mapping[elem])
-
+            decoded_output_value = set([self.mapping[elem] for elem in output_value])
             for key, val in NUMBERS.items():
-                temp = (val==decoded_output_value)
                 if val == decoded_output_value:
                     digits.append(key)
 
