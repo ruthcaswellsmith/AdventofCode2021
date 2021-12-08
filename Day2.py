@@ -24,7 +24,6 @@ def part_two(filename=None):
 
     with open(filename, 'r') as f:
         data = f.read().rstrip('\n').split('\n')
-    f.close()
 
     position = np.zeros(3)
     num_inputs = len(data)
