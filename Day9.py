@@ -91,26 +91,31 @@ class Heightmap():
         # Check to the east
         if (x < self.max_x):
             next_x, next_y = x + 1, y
-            if (self.grid[next_x, next_y] != 9) and (self.grid[next_x, next_y] > current_val):
+            if self.__move_on(next_x, next_y, current_val):
                 self.__travel_grid(next_x, next_y, basin)
 
         # Check to the west
         if (x > 0):
             next_x, next_y = x - 1, y
-            if (self.grid[next_x, next_y] != 9) and (self.grid[next_x, next_y] > current_val):
+            if self.__move_on(next_x, next_y, current_val):
                 self.__travel_grid(next_x, next_y, basin)
 
         # Check to the north
         if (y < self.max_y):
             next_x, next_y = x, y + 1
-            if (self.grid[next_x, next_y] != 9) and (self.grid[next_x, next_y] > current_val):
+            if self.__move_on(next_x, next_y, current_val):
                 self.__travel_grid(next_x, next_y, basin)
 
         # Check to the south
         if (y > 0):
             next_x, next_y = x, y - 1
-            if (self.grid[next_x, next_y] != 9) and (self.grid[next_x, next_y] > current_val):
+            if self.__move_on(next_x, next_y, current_val):
                 self.__travel_grid(next_x, next_y, basin)
+
+    def __move_on(self, x, y, val):
+
+        return (self.grid[x, y] != 9) and (self.grid[x, y] > val)
+
 
 def process_file(filename):
 
