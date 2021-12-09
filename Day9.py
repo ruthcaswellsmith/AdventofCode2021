@@ -1,5 +1,7 @@
 import numpy as np
 from typing import List
+import time
+
 
 class Point():
 
@@ -119,25 +121,21 @@ class Heightmap():
         basin[x, y] = True
         current_val = self.grid[x, y]
 
-        # Check to the east
         if x < self.max_x:
             next_x, next_y = x + 1, y
             if self.__move_on(next_x, next_y, current_val):
                 self.__travel_grid(next_x, next_y, basin)
 
-        # Check to the west
         if x > 0:
             next_x, next_y = x - 1, y
             if self.__move_on(next_x, next_y, current_val):
                 self.__travel_grid(next_x, next_y, basin)
 
-        # Check to the south
         if y < self.max_y:
             next_x, next_y = x, y + 1
             if self.__move_on(next_x, next_y, current_val):
                 self.__travel_grid(next_x, next_y, basin)
 
-        # Check to the north
         if y > 0:
             next_x, next_y = x, y - 1
             if self.__move_on(next_x, next_y, current_val):
@@ -180,7 +178,10 @@ if __name__ == "__main__":
     print(f'The answer to part one is {answer}.')
 
     # type = iterative/recursive
+    start = time.time()
     basin_numbers = heightmap.identify_basins(type='iterative')
+    end = time.time()
+    print(end - start)
 
     # The answer is the product of the number of points in the three largest basins
     answer = np.array(basin_numbers[-3:]).prod()
