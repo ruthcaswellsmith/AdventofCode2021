@@ -69,33 +69,48 @@ class Heightmap():
 
     def identify_basins(self):
 
+        basin_numbers = []
         for point in self.low_points:
 
-            basin = np.zeros((self.max_x, self.max_y), dtye=bool)
+            basin = np.zeros((self.max_x + 1, self.max_y + 1), dtype=bool)
 
-            for dir in Directions:
+            self.__travel_grid(point.x, point.y, basin)
 
-                self.__travel_grid(point, dir)
+            basin_numbers.append(basin[basin].sum())
 
-    def __travel_grid(self, point, dir):
+        basin_numbers.sort()
+        return basin_numbers
 
-        # This is a recursive function
+
+    def __travel_grid(self, x, y, basin):
 
         # We're here so we're in the basin
-        self.basin[point.x, point.y] = True
+        basin[x, y] = True
+        current_val = self.grid[x, y]
 
-        # Now go back if we can't go further, else we go on
-        if dir == Directions.EAST:
-            if point.x == self.max_x:
-                return
-            elif (self.grid[x + 1, y] == 9) or (self.grid[x + 1, y] <  point.val)
-                return
-            else:
-                self.__travel_grid()
+        # Check to the east
+        if (x < self.max_x):
+            next_x, next_y = x + 1, y
+            if (self.grid[next_x, next_y] != 9) and (self.grid[next_x, next_y] > current_val):
+                self.__travel_grid(next_x, next_y, basin)
 
+        # Check to the west
+        if (x > 0):
+            next_x, next_y = x - 1, y
+            if (self.grid[next_x, next_y] != 9) and (self.grid[next_x, next_y] > current_val):
+                self.__travel_grid(next_x, next_y, basin)
 
+        # Check to the north
+        if (y < self.max_y):
+            next_x, next_y = x, y + 1
+            if (self.grid[next_x, next_y] != 9) and (self.grid[next_x, next_y] > current_val):
+                self.__travel_grid(next_x, next_y, basin)
 
-
+        # Check to the south
+        if (y > 0):
+            next_x, next_y = x, y - 1
+            if (self.grid[next_x, next_y] != 9) and (self.grid[next_x, next_y] > current_val):
+                self.__travel_grid(next_x, next_y, basin)
 
 def process_file(filename):
 
@@ -126,5 +141,7 @@ if __name__ == "__main__":
     answer = heightmap.get_answer(part=Part.PART_ONE)
     print(f'The answer to part one is {answer}.')
 
-    heightmap.identify_basins()
+    basin_numbers = heightmap.identify_basins()
+    answer = np.array(basin_numbers[-3:]).prod()
+    print(f'The answer to part two is {answer}.')
 
