@@ -1,18 +1,5 @@
 import numpy as np
-from enum import Enum, auto
 from typing import List
-
-class Part(str, Enum):
-
-    PART_ONE = auto()
-    PART_TWO = auto()
-
-class Directions(str, Enum):
-
-    EAST = auto()
-    WEST = auto()
-    SOUTH = auto()
-    NORTH = auto()
 
 class Point():
 
@@ -55,17 +42,6 @@ class Heightmap():
             diffs = np.array(point.diffs)
             if len(diffs) == len(diffs[np.where(diffs > 0)]):
                 self.low_points.append(point)
-
-    def get_answer(self, part: Part):
-
-        if part == part.PART_ONE:
-
-            answer = 0
-            for point in self.low_points:
-
-                answer += 1 + point.val
-
-            return answer
 
     def identify_basins(self):
 
@@ -143,10 +119,13 @@ if __name__ == "__main__":
     heightmap.calc_diffs()
     heightmap.identify_low_points()
 
-    answer = heightmap.get_answer(part=Part.PART_ONE)
+    # The answer is the sum of 1 + height all low points
+    answer = sum([1 + point.val for point in heightmap.low_points])
     print(f'The answer to part one is {answer}.')
 
     basin_numbers = heightmap.identify_basins()
+
+    # The answer is the product of the number of points in the three largest basins
     answer = np.array(basin_numbers[-3:]).prod()
     print(f'The answer to part two is {answer}.')
 
