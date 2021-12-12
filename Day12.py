@@ -2,6 +2,9 @@ from enum import Enum, auto
 import numpy as np
 from typing import List
 
+START = 'start'
+END = 'end'
+
 class Caves():
 
     def __init__(self, connections: List):
@@ -14,7 +17,10 @@ class Caves():
             self.__add_connection(connection[0], connection[1])
             self.__add_connection(connection[1], connection[0])
 
+        self.small_caves = [cave for cave in self.lookup.keys() if cave.islower() and cave not in ['start','end']]
         self.paths = []
+
+        print(self.__ok_to_visit('A,B,c,b', 'c'))
 
     def __add_connection(self, a, b):
 
@@ -23,23 +29,53 @@ class Caves():
         else:
             self.lookup[a] = [b]
 
-    def get_paths(self, path):
+    def get_paths_part_one(self, path):
+
+        most_recent_cave = path[path.rfind(',') + 1:]
+        for next_cave in self.lookup[most_recent_cave]:
+
+            if (next_cave.islower() and next_cave in path) or (next_cave == START):
+                pass
+            elif next_cave == END:
+                self.paths.append(f'{path},{END}')
+            else:
+                self.get_paths_part_one(f'{path},{next_cave}')
+
+        return
+
+
+    def get_paths_part_two(self, path):
 
         most_recent_cave = path[path.rfind(',') + 1:]
 
-        root_path = path
-        for next_cave in self.lookup[most_recent_cave]:
+        caves_to_traverse = self.lookup[most_recent_cave]
+        for next_cave in caves_to_traverse:
 
-            path = root_path
-            if (next_cave.islower() and next_cave in path) or (next_cave == 'start'):
-                return 'bad_path'
-            if next_cave == 'end':
-                return f'{path},end'
+            if next_cave == START:
+                pass
+            elif next_cave == END:
+                self.paths.append(f'{path},{END}')
+            elif not self.__ok_to_visit(path, next_cave):
+                pass
             else:
-                while not ('end' in path or path == 'bad_path'):
-                    path = self.get_paths(f'{path},{next_cave}')
-                if 'end' in path:
-                    self.paths.append(path)
+                self.get_paths_part_two(f'{path},{next_cave}')
+
+        return
+
+    def __ok_to_visit(self, path, cave):
+
+        visits = np.array([path.count(small_cave) for small_cave in self.small_caves])
+
+        if max(visits) < 2:
+            # We haven't visited any small cave more than once
+            return True
+
+        elif self.small_caves[int(np.where(visits > 1)[0])] == cave:
+            # The cave we've visited more than once is this cave
+            return True
+
+        else:
+            return False
 
 
 def process_file(filename):
@@ -59,15 +95,9 @@ if __name__ == "__main__":
     connections = process_file(filename)
     caves = Caves(connections)
 
-    caves.get_paths('start')
-    print('hi')
+    caves.get_paths_part_one('start')
+    print(f'The answer to part one is {len(caves.paths)}.')
 
-    # initial_energy_levels = process_file(filename)
-    #
-    # octopi = Octopi(initial_energy_levels)
-    # octopi.take_n_steps(n=100)
-    # print(f'The answer to part one is {octopi.num_flashes}.')
-    #
-    # octopi = Octopi(initial_energy_levels)
-    # octopi.get_all_flashing_step()
-    # print(f'The answer to part two is {octopi.step}.')
+    caves.get_paths_part_two('start')
+    print(f'The answer to part one is {len(caves.paths)}.')
+
