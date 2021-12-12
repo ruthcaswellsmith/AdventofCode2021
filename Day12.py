@@ -5,6 +5,10 @@ from typing import List
 START = 'start'
 END = 'end'
 
+class Part(str, Enum):
+    PART_ONE = auto()
+    PART_TWO = auto()
+
 class Caves():
 
     def __init__(self, connections: List):
@@ -17,65 +21,44 @@ class Caves():
             self.__add_connection(connection[0], connection[1])
             self.__add_connection(connection[1], connection[0])
 
-        self.small_caves = [cave for cave in self.lookup.keys() if cave.islower() and cave not in ['start','end']]
+        self.small_caves = [cave for cave in self.lookup.keys() if cave.islower() and cave not in [START, END]]
         self.paths = []
 
-        print(self.__ok_to_visit('A,B,c,b', 'c'))
-
-    def __add_connection(self, a, b):
+    def __add_connection(self, a: str, b: str):
 
         if a in self.lookup:
             self.lookup[a].append(b)
         else:
             self.lookup[a] = [b]
 
-    def get_paths_part_one(self, path):
+    def get_paths(self, path: str, part: Part):
 
         most_recent_cave = path[path.rfind(',') + 1:]
         for next_cave in self.lookup[most_recent_cave]:
 
-            if (next_cave.islower() and next_cave in path) or (next_cave == START):
+            if next_cave == START or not self.__ok_to_visit(path=path, cave=next_cave, part=part):
                 pass
             elif next_cave == END:
                 self.paths.append(f'{path},{END}')
             else:
-                self.get_paths_part_one(f'{path},{next_cave}')
+                self.get_paths(path=f'{path},{next_cave}', part=part)
 
-        return
+    def __ok_to_visit(self, path: str, cave: str, part: Part):
 
-
-    def get_paths_part_two(self, path):
-
-        most_recent_cave = path[path.rfind(',') + 1:]
-
-        caves_to_traverse = self.lookup[most_recent_cave]
-        for next_cave in caves_to_traverse:
-
-            if next_cave == START:
-                pass
-            elif next_cave == END:
-                self.paths.append(f'{path},{END}')
-            elif not self.__ok_to_visit(path, next_cave):
-                pass
-            else:
-                self.get_paths_part_two(f'{path},{next_cave}')
-
-        return
-
-    def __ok_to_visit(self, path, cave):
-
-        visits = np.array([path.count(small_cave) for small_cave in self.small_caves])
-
-        if max(visits) < 2:
-            # We haven't visited any small cave more than once
+        if cave.isupper():
             return True
 
-        elif self.small_caves[int(np.where(visits > 1)[0])] == cave:
-            # The cave we've visited more than once is this cave
-            return True
+        if part == part.PART_ONE:
+
+            return False if cave in path else True
 
         else:
-            return False
+
+            if cave not in path:
+                return True
+            else:
+                visits = np.array([path.count(small_cave) for small_cave in self.small_caves])
+                return True if max(visits) == 1 else False
 
 
 def process_file(filename):
@@ -91,13 +74,14 @@ def process_file(filename):
 
 if __name__ == "__main__":
 
-    filename = "input/test.txt"
+    filename = "input/Day12.txt"
     connections = process_file(filename)
+
     caves = Caves(connections)
-
-    caves.get_paths_part_one('start')
+    caves.get_paths('start', Part.PART_ONE)
     print(f'The answer to part one is {len(caves.paths)}.')
 
-    caves.get_paths_part_two('start')
-    print(f'The answer to part one is {len(caves.paths)}.')
+    caves = Caves(connections)
+    caves.get_paths('start', Part.PART_TWO)
+    print(f'The answer to part two is {len(caves.paths)}.')
 
