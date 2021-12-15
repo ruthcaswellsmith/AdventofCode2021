@@ -12,14 +12,16 @@ class Polymer():
     def __init__(self, template: str, rules: List[List[str]]):
 
         self.template = template
+        self.pair_counts = {}
 
         self.rules = {}
         for rule in rules:
             self.rules[rule[0]] = rule[1]
-        self.pair_counts = {}
 
         for pair in self.rules.keys():
-            self.pair_counts[pair] = self.template.count(pair)
+            self.pair_counts[pair] = 0
+        for i in range(len(self.template) - 1):
+            self.pair_counts[self.template[i:i+2]] += 1
 
         self.letter_counts = {}
         for letter in list(string.ascii_uppercase):
