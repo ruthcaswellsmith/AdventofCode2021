@@ -11,62 +11,56 @@ class Polymer():
 
     def __init__(self, template: str, rules: List[List[str]]):
 
-        self.polymer = template
+        self.template = template
+
         self.rules = {}
         for rule in rules:
             self.rules[rule[0]] = rule[1]
         self.pair_counts = {}
+
         for pair in self.rules.keys():
-            self.pair_counts[pair] = self.polymer.count(pair)
-        self.letters = list(string.ascii_uppercase)
-        self.letter_counts = []
+            self.pair_counts[pair] = self.template.count(pair)
 
-    def find_terminating_rule(self):
+        self.letter_counts = {}
+        for letter in list(string.ascii_uppercase):
+            self.letter_counts[letter] = 0
 
-        for pair, letter in self.rules.items():
-            if pair.count(pair[0]) == 2:
-                letter1 = pair[0]
-                letter2 = letter
-                if (self.rules[letter1 + letter2] in [letter1, letter2]) \
-                    and (self.rules[letter2 + letter1] in [letter1, letter2]):
-                    print(pair, letter)
-
-    def n_steps(self, n: int, part: Part):
+    def n_steps(self, n: int):
 
         for i in range(n):
-            self.__step(part, i)
-            print(self.polymer)
-        self.__get_letter_counts()
+            self.__step()
 
-    def __step(self, part: Part, step: int):
+    def __step(self):
 
-        if part == Part.PART_ONE:
-            insertions = []
-            for i in range(len(self.polymer) - 1):
-                insertions.append(self.rules[self.polymer[i:i + 2]])
+        self.new_pair_counts = {}
+        for pair in self.rules.keys():
+            self.new_pair_counts[pair] = 0
 
-            for i in range(len(insertions)):
-                divide = 2 * (i + 1)
-                left = self.polymer[:divide]
-                right = self.polymer[divide:]
-                self.polymer = left[:-1] + insertions[i] + left[-1] + right
+        for pair, count in self.pair_counts.items():
 
-        else:
-            pass
-            # insertions = []
-            # for i in range(len(self.polymer) - 1):
-            #     if self.polymer[i].isnum():
-            #
-            #     insertions.append(self.rules[self.polymer[i:i + 2]])
+            if count > 0:
+                left_letter = pair[0]
+                right_letter = pair[1]
+                insert_letter = self.rules[pair]
+                self.new_pair_counts[left_letter + insert_letter] += count
+                self.new_pair_counts[insert_letter + right_letter] += count
 
+        self.pair_counts = self.new_pair_counts.copy()
 
-    def __get_letter_counts(self):
+    def count_letters(self):
 
-        self.letter_counts = []
-        for letter in self.letters:
-            self.letter_counts.append(self.polymer.count(letter))
+        for pair, count in self.pair_counts.items():
 
-        self.letter_counts = [count for count in self.letter_counts if count > 0]
+            right_letter = pair[1]
+            self.letter_counts[right_letter] += count
+
+        # Finally count the left-most letter of our template
+        self.letter_counts[self.template[0]] += 1
+
+    def get_answer(self):
+
+        self.letter_counts = [count for count in self.letter_counts.values() if count > 0]
+        return max(self.letter_counts) - min(self.letter_counts)
 
 def process_file(filename):
 
@@ -89,9 +83,8 @@ if __name__ == "__main__":
     template, rules = process_file(filename)
 
     polymer = Polymer(template, rules)
-    polymer.n_steps(10, Part.PART_ONE)
-    print(f'The answer to part one is {max(polymer.letter_counts) - min(polymer.letter_counts)}.')
+    polymer.n_steps(40)
+    polymer.count_letters()
+    answer = polymer.get_answer()
+    print(f'The answer is {answer}.')
 
-    polymer = Polymer(template, rules)
-    polymer.find_terminating_rule()
-#    polymer.predict_n_steps(n=3)
