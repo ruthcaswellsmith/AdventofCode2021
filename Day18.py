@@ -2,17 +2,11 @@ from enum import Enum, auto
 import regex as re
 import math
 
-class Part(str, Enum):
-
-    PART_ONE = auto()
-    PART_TWO = auto()
-
 class SnailfishNum():
 
     def __init__(self, string):
 
         self.string = string
-        self.pos = None
 
     def reduce(self):
 
@@ -39,12 +33,12 @@ class SnailfishNum():
 
         positions = [m.start() for m in re.finditer('\[\d+,\d+\]', self.string)]
         for pos in positions:
-            left = self.string[0:pos+1]
+            left = self.string[0:pos + 1]
             depth = left.count('[') - left.count(']')
             if depth > 4:
                 self.exp_pos = pos
                 right = self.string[pos:]
-                self.exp_pair = right[:right.index(']')+1]
+                self.exp_pair = right[:right.index(']') + 1]
                 return True
         return False
 
@@ -62,27 +56,37 @@ class SnailfishNum():
 
         left = math.floor(self.split_num / 2)
         right = math.ceil(self.split_num / 2)
-        self.string = f'{self.string[:self.split_pos]}[{str(left)},{str(right)}]{self.string[self.split_pos+2:]}'
+        self.string = f'{self.string[:self.split_pos]}[{str(left)},{str(right)}]{self.string[self.split_pos + 2:]}'
 
     def explode(self):
 
-        comma_ind = self.exp_pair.index(',')
-        left_num, right_num = int(self.exp_pair[1: comma_ind]), int(self.exp_pair[comma_ind+1: len(self.exp_pair)-1])
-        left_str, right_str = self.string[0:self.exp_pos], self.string[self.exp_pos + len(self.exp_pair):]
+        left_num, right_num = self.__get_exp_nums()
+        left_str, right_str = self.__get_substrings()
 
         num_to_left, num_to_right = self.__find_num(left_str, 'L'), self.__find_num(right_str, 'R')
 
         if num_to_left:
             left_rep = str(int(num_to_left) + left_num)
             left_ind = left_str.rfind(num_to_left)
-            left_str = f'{left_str[:left_ind]}{left_rep}{left_str[left_ind + len(num_to_left):]}'
+            left_str = self.__replace_num(left_str, left_ind, num_to_left, left_rep)
 
         if num_to_right:
             right_rep = str(int(num_to_right) + right_num)
             right_ind = right_str.find(num_to_right)
-            right_str = f'{right_str[:right_ind]}{right_rep}{right_str[right_ind + len(num_to_right):]}'
+            right_str = self.__replace_num(right_str, right_ind, num_to_right, right_rep)
 
         self.string = f'{left_str}0{right_str}'
+
+    @staticmethod
+    def __replace_num(string, ind, num, rep):
+        return f'{string[:ind]}{rep}{string[ind + len(num):]}'
+
+    def __get_exp_nums(self):
+        comma_ind = self.exp_pair.index(',')
+        return int(self.exp_pair[1: comma_ind]), int(self.exp_pair[comma_ind + 1: len(self.exp_pair) - 1])
+
+    def __get_substrings(self):
+        return self.string[0:self.exp_pos], self.string[self.exp_pos + len(self.exp_pair):]
 
     def __find_num(self, string, type):
 
@@ -115,7 +119,6 @@ def get_greatest_magnitude(data):
     for i in range(num):
         for j in range(num):
             if i != j:
-                print(f'adding {i} and {j}')
                 snailfishnum = SnailfishNum(data[i])
                 snailfishnum.add(SnailfishNum(data[j]))
                 snailfishnum.reduce()
