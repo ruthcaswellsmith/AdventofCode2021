@@ -21,19 +21,19 @@ class SnailfishNum():
 
             while self.need_to_explode():
 
-                self.explode(self.pos)
+                self.explode()
 
             done = True
 
             if self.need_to_split():
 
-                self.split(self.pos)
+                self.split()
                 done = False
 
 
-    def add(self, string):
+    def add(self, snailfishnum):
 
-        self.string = f'[{self.string},{string}]'
+        self.string = f'[{self.string},{snailfishnum.string}]'
 
     def need_to_explode(self):
 
@@ -42,7 +42,9 @@ class SnailfishNum():
             left = self.string[0:pos+1]
             depth = left.count('[') - left.count(']')
             if depth > 4:
-                self.pos = pos
+                self.exp_pos = pos
+                right = self.string[pos:]
+                self.exp_pair = right[:right.index(']')+1]
                 return True
         return False
 
@@ -50,67 +52,57 @@ class SnailfishNum():
 
         x = re.search('\d{2}', self.string)
         if x:
-            self.pos = x.start()
+            self.split_pos = x.start()
+            self.split_num = int(self.string[x.start():x.end()])
             return True
         else:
             return False
 
-    def split(self, pos):
+    def split(self):
 
-        num = int(self.string[pos: pos + 2])
-        left = math.floor(num / 2)
-        right = math.ceil(num / 2)
-        self.string = self.string[:pos] + f'[{str(left)},{str(right)}]' + self.string[pos+2:]
+        left = math.floor(self.split_num / 2)
+        right = math.ceil(self.split_num / 2)
+        self.string = f'{self.string[:self.split_pos]}[{str(left)},{str(right)}]{self.string[self.split_pos+2:]}'
 
-    def explode(self, pos):
+    def explode(self):
 
-        right = self.string[pos:]
-        exploding_pair = right[:right.index(']')+1]
-        comma_ind = exploding_pair.index(',')
-        left, right = exploding_pair[1: comma_ind], exploding_pair[comma_ind+1: len(exploding_pair)-1]
-        left_str, right_str = self.string[0:pos], self.string[pos + len(exploding_pair):]
+        comma_ind = self.exp_pair.index(',')
+        left_num, right_num = int(self.exp_pair[1: comma_ind]), int(self.exp_pair[comma_ind+1: len(self.exp_pair)-1])
+        left_str, right_str = self.string[0:self.exp_pos], self.string[self.exp_pos + len(self.exp_pair):]
 
-        num_to_left = self.__find_left(left_str)
+        num_to_left, num_to_right = self.__find_num(left_str, 'L'), self.__find_num(right_str, 'R')
+
         if num_to_left:
-            replacement = str(int(num_to_left) + int(left))
-            ind = left_str.rfind(num_to_left)
-            self.string = self.string[0:ind] + replacement + self.string[ind + len(num_to_left):]
-            if len(num_to_left) == 1 and len(replacement) == 2:
-                pos += 1
+            left_rep = str(int(num_to_left) + left_num)
+            left_ind = left_str.rfind(num_to_left)
+            left_str = f'{left_str[:left_ind]}{left_rep}{left_str[left_ind + len(num_to_left):]}'
 
-        num_to_right = self.__find_right(right_str)
         if num_to_right:
-            replacement = str(int(num_to_right) + int(right))
-            ind = pos + len(exploding_pair) + right_str.find(num_to_right)
-            self.string = self.string[0:ind] + replacement + self.string[ind + len(num_to_right):]
+            right_rep = str(int(num_to_right) + right_num)
+            right_ind = right_str.find(num_to_right)
+            right_str = f'{right_str[:right_ind]}{right_rep}{right_str[right_ind + len(num_to_right):]}'
 
-        self.string = self.string[0: pos] + '0' + self.string[pos + len(exploding_pair):]
+        self.string = f'{left_str}0{right_str}'
 
-    def __find_left(self, left_str):
+    def __find_num(self, string, type):
 
-        num = next(iter(reversed(re.findall("\d+", left_str))), None)
-        return num
-
-    def __find_right(self, right_str):
-
-        nums = re.findall("\d+", right_str)
-        return nums[0] if nums else None
+        if type == 'L':
+            return next(iter(reversed(re.findall("\d+", string))), None)
+        else:
+            return next(iter(re.findall("\d+", string)), None)
 
     def get_magnitude(self, string):
 
         if string.isnumeric():
             return int(string)
 
-        # Split string
         pos = self.__split_string(string)
-
         return 3 * self.get_magnitude(string[1:pos]) + 2 * self.get_magnitude(string[pos+1:len(string)-1])
 
     @staticmethod
     def __split_string(string):
 
         positions = [m.start() for m in re.finditer(',', string)]
-
         for pos in positions:
             substr = string[:pos]
             if substr.count('[') - substr.count(']') == 1:
@@ -119,15 +111,17 @@ class SnailfishNum():
 def get_greatest_magnitude(data):
 
     num = len(data)
-    snailfishnums = []
-    for i in range(num):
-        snailfishnums.append(SnailfishNum(data[0]))
-
     magnitudes = []
     for i in range(num):
         for j in range(num):
             if i != j:
-                magnitudes.append(snailfishnums[i].add(snailfishnums[j]))
+                print(f'adding {i} and {j}')
+                snailfishnum = SnailfishNum(data[i])
+                snailfishnum.add(SnailfishNum(data[j]))
+                snailfishnum.reduce()
+                snailfishnum.magnitude = snailfishnum.get_magnitude(snailfishnum.string)
+                magnitudes.append(snailfishnum.magnitude)
+    return max(magnitudes)
 
 def process_file(filename):
 
@@ -142,10 +136,9 @@ if __name__ == "__main__":
     data = process_file(filename)
     snailfishnum = SnailfishNum(data[0])
     for line in data[1:]:
-        snailfishnum.add(line)
+        snailfishnum.add(SnailfishNum(line))
         snailfishnum.reduce()
     snailfishnum.magnitude = snailfishnum.get_magnitude(snailfishnum.string)
     print(f'The answer to part one is {snailfishnum.magnitude}')
 
-
-
+    print(f'The answer to part two is {get_greatest_magnitude(data)}')
