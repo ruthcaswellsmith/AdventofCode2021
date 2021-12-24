@@ -6,7 +6,7 @@ import numpy as np
 SIZE = 1000
 MATCH = 12
 IDENTITY = np.identity(3)
-ZERO_OFFSET = np.array[0,0,0]
+ZERO_OFFSET = np.array([0,0,0])
 
 def rotation_matrices():
 
@@ -46,7 +46,33 @@ class Report():
             self.scanners.append(Scanner(scanner))
         self.num_scanners = len(self.scanners)
         self.ROTATION_MATRICES = rotation_matrices()
-        self.total_beacons = set()
+
+    @staticmethod
+    def unique(a):
+        # Credit Bi Rico Stack Overflow
+        order = np.lexsort(a.T)
+        a = a[order]
+        diff = np.diff(a, axis=0)
+        ui = np.ones(len(a), 'bool')
+        ui[1:] = (diff != 0).any(axis=1)
+        return a[ui]
+
+    def get_max_manhattan_dist(self):
+
+        max_dist = 0
+        for ind1 in range(self.beacons.shape[1]):
+            for ind2 in range(ind1 + 1, self.beacons.shape[1]):
+                max_dist = max(max_dist, self.__manhattan_dist(
+                    self.beacons[:, ind1], self.beacons[:, ind2]))
+        return max_dist
+
+    @staticmethod
+    def __manhattan_dist(beacon1, beacon2):
+
+        dist = 0
+        for i in range(3):
+            dist += abs(beacon1[i] - beacon2[i])
+        return int(dist)
 
     def match_scanners_recursive(self, scanner):
 
@@ -61,12 +87,13 @@ class Report():
 
     def get_list_of_beacons(self, scanner, matrix, offsets):
 
-        beacons = {str(scanner.beacons[:,i]) for i in range(scanner.num_beacons)}
+        print(f'getting beacons from scanner {scanner.num}')
+        beacons = scanner.beacons
         for match in scanner.matches:
-            beacons = beacons.intersection(\
-                self.get_list_of_beacons(self.scanners[int(match.scanner)], match.matrix, match.offsets))
+            beacons = np.concatenate((beacons, self.get_list_of_beacons(\
+                self.scanners[int(match.scanner)], match.matrix, match.offsets)), axis=1)
 
-        return np.matmul(matrix, beacons) - offsets
+        return (np.matmul(matrix, beacons).T - offsets).T
 
     def match_scanners(self):
 
@@ -121,7 +148,7 @@ class Match():
 
         self.scanner = num
         self.matrix = matrix
-        self.offset = offsets
+        self.offsets = offsets
         self.matches = matches
 
 def process_file(filename):
@@ -159,5 +186,9 @@ if __name__ == "__main__":
 
     report = Report(scanners)
     report.match_scanners_recursive(report.scanners[0])
-    report.get_list_of_beacons(report.scanners[0], IDENTITY, ZERO_OFFSET)
+    report.beacons = report.unique(report.get_list_of_beacons(report.scanners[0], IDENTITY, ZERO_OFFSET).T).T
+    print(f'The answer to part one is {report.beacons.shape[1]}')
+
+    manhattan = report.get_max_manhattan_dist()
+    print(f'The answer to part tow is {manhattan}')
 
