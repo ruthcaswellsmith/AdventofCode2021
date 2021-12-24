@@ -1,12 +1,41 @@
 from enum import Enum, auto
-import regex as re
+from typing import List
 import math
 import numpy as np
 
-SIZE = 2000
-OFFSET = 1000
+SIZE = 1000
 MATCH = 12
+IDENTITY = np.identity(3)
+ZERO_OFFSET = np.array[0,0,0]
 
+def rotation_matrices():
+
+    # Four rotations about x
+    four_matrices = []
+    for theta in [0, math.pi / 2, math.pi, 3 * math.pi / 2]:
+        four_matrices.append(np.array([[1, 0, 0],
+                                       [0, round(math.cos(theta)), -round(math.sin(theta))],
+                                       [0, round(math.sin(theta)), round(math.cos(theta))]]))
+
+    six_matrices = []
+    # 0, 90, 180, 270 degrees about y
+    for theta in [0, math.pi / 2, math.pi, 3 * math.pi / 2]:
+        six_matrices.append(np.array([[round(math.cos(theta)), 0, -round(math.sin(theta))],
+                                       [0, 1, 0],
+                                       [round(math.sin(theta)), 0, round(math.cos(theta))]]))
+
+    # 90, 270 degrees about z
+    for theta in [math.pi / 2, 3 * math.pi / 2]:
+        six_matrices.append(np.array([[round(math.cos(theta)), -round(math.sin(theta)), 0],
+                                       [round(math.sin(theta)), round(math.cos(theta)), 0],
+                                       [0, 0, 1]]))
+
+    rotation_matrices = []
+    for mat2 in six_matrices:
+        for mat1 in four_matrices:
+            rotation_matrices.append(np.matmul(mat2, mat1))
+
+    return rotation_matrices
 
 class Report():
 
@@ -15,75 +44,85 @@ class Report():
         self.scanners = []
         for scanner in scanners:
             self.scanners.append(Scanner(scanner))
+        self.num_scanners = len(self.scanners)
+        self.ROTATION_MATRICES = rotation_matrices()
+        self.total_beacons = set()
+
+    def match_scanners_recursive(self, scanner):
+
+        unmatched = self.__get_unmatched_scanners()
+        while unmatched:
+            for ind2 in unmatched:
+                if int(scanner.num) != ind2 and not self.scanners[ind2].matched:
+                    if self.match(scanner, self.scanners[ind2]):
+                        print(f'matched {scanner.num} and {ind2}')
+                        self.match_scanners_recursive(self.scanners[ind2])
+            return
+
+    def get_list_of_beacons(self, scanner, matrix, offsets):
+
+        beacons = {str(scanner.beacons[:,i]) for i in range(scanner.num_beacons)}
+        for match in scanner.matches:
+            beacons = beacons.intersection(\
+                self.get_list_of_beacons(self.scanners[int(match.scanner)], match.matrix, match.offsets))
+
+        return np.matmul(matrix, beacons) - offsets
+
+    def match_scanners(self):
+
+        for ind1 in range(self.num_scanners):
+            for ind2 in range(ind1 + 1, self.num_scanners):
+                if self.match(self.scanners[ind1], self.scanners[ind2]):
+                    print(f'matched {ind1} and {ind2}')
+
+    def __get_unmatched_scanners(self):
+
+        return [ind for ind in range(self.num_scanners) if not self.scanners[ind].matched]
+
+    def match(self, scanner1, scanner2):
+
+        print(f'trying to match {scanner1.num} and {scanner2.num}')
+
+        # First we rotate scanner2, then we try to match 12 beacons
+        for matrix in self.ROTATION_MATRICES:
+            rotated = np.matmul(matrix, scanner2.beacons)
+
+            for ind1 in range(scanner1.num_beacons):
+                for ind2 in range(ind1, scanner2.num_beacons):
+                    offsets = rotated[:, ind2] - scanner1.beacons[:, ind1]
+                    rotated_offset = (rotated.T - offsets).T
+                    matches = []
+                    for i in range(scanner1.num_beacons):
+                        if (rotated_offset.T == scanner1.beacons[:, i]).all(axis=1).any():
+                            matches.append(rotated_offset.T[(rotated_offset.T == scanner1.beacons[:, i]).all(axis=1)])
+                    if len(matches) >= 12:
+                        match = Match(scanner2.num, matrix, offsets, matches)
+                        scanner1.matches.append(match)
+                        scanner1.matched = True
+                        scanner2.matched = True
+                        return True
+        return False
 
 class Scanner():
 
     def __init__(self, scanner):
 
         self.num = scanner['num']
-        self.cube = np.zeros((SIZE, SIZE, SIZE), dtype=bool)
         self.beacons = []
         for pt in scanner['coords']:
-            self.cube[int(pt[0]) + OFFSET, int(pt[1]) + OFFSET, int(pt[2]) + OFFSET] = True
             self.beacons.append([int(pt[0]), int(pt[1]), int(pt[2])])
+        self.beacons = np.array(self.beacons).T
+        self.num_beacons = self.beacons.shape[1]
         self.matches = []
+        self.matched = False
 
-    def __do_four_rots(self, cube, axes):
+class Match():
+    def __init__(self, num: str, matrix: np.ndarray, offsets: np.ndarray, matches: List):
 
-        for i in range(4):
-            rotated = np.rot90(cube, i, axes)
-            match = self.__match(rotated)
-            if match:
-                return match
-
-    def rotate_and_match(self, scanner):
-
-        match = self.__do_four_rots(scanner.cube, axes=(1, 2))
-        if match:
-            self.matches.append([scanner.num, match])
-            return
-
-        rotated = np.rot90(scanner.cube, 2, axes=(0, 2))
-        match = self.__do_four_rots(rotated, axes=(1, 2))
-        if match:
-            self.matches.append([scanner.num, match])
-            return
-
-        rotated = np.rot90(scanner.cube, 2, axes=(0, 2))
-        match = self.__do_four_rots(rotated, axes=(0, 1))
-        if match:
-            self.matches.append([scanner.num, match])
-            return
-
-        rotated = np.rot90(scanner.cube, -1, axes=(0, 2))
-        match = self.__do_four_rots(rotated, axes=(0, 1))
-        if match:
-            self.matches.append([scanner.num, match])
-            return
-
-        rotated = np.rot90(scanner.cube, axes=(0, 1))
-        match = self.__do_four_rots(rotated, axes=(0, 2))
-        if match:
-            self.matches.append([scanner.num, match])
-            return
-
-        rotated = np.rot90(scanner.cube, -1, axes=(0, 1))
-        match = self.__do_four_rots(rotated, axes=(0, 2))
-        if match:
-            self.matches.append([scanner.num, match])
-            return
-
-    def __match(self, cube):
-
-        # For each scanner look at rotated cube and see if we have a match
-        matches = 0
-        for beacon in self.beacons:
-            if cube[beacon[0], beacon[1], beacon[2]]:
-                matches += 1
-        if matches >= 12:
-            return True
-
-        return None
+        self.scanner = num
+        self.matrix = matrix
+        self.offset = offsets
+        self.matches = matches
 
 def process_file(filename):
 
@@ -95,7 +134,6 @@ def process_file(filename):
 
         scanner = {}
         scanner_line = data[0]
-        print(scanner_line)
         ind1 = scanner_line.index('--- scanner ') + len('--- scanner ') - 1
         ind2 = scanner_line.rfind(' ---')
         scanner['num'] = scanner_line[ind1 + 1: ind2]
@@ -120,7 +158,6 @@ if __name__ == "__main__":
     scanners = process_file(filename)
 
     report = Report(scanners)
-    report.scanners[0].rotate_and_match(report.scanners[1])
-
-    print('hi')
+    report.match_scanners_recursive(report.scanners[0])
+    report.get_list_of_beacons(report.scanners[0], IDENTITY, ZERO_OFFSET)
 
