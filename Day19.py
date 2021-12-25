@@ -60,10 +60,10 @@ class Report():
     def get_max_manhattan_dist(self):
 
         max_dist = 0
-        for ind1 in range(self.beacons.shape[1]):
-            for ind2 in range(ind1 + 1, self.beacons.shape[1]):
+        for ind1 in range(self.num_scanners):
+            for ind2 in range(ind1 + 1, self.num_scanners):
                 max_dist = max(max_dist, self.__manhattan_dist(
-                    self.beacons[:, ind1], self.beacons[:, ind2]))
+                    self.scanners[:, ind1], self.scanners[:, ind2]))
         return max_dist
 
     @staticmethod
@@ -84,6 +84,25 @@ class Report():
                         print(f'matched {scanner.num} and {ind2}')
                         self.match_scanners_recursive(self.scanners[ind2])
             return
+
+    def get_list_of_scanners(self, scanner, matrix, offsets):
+
+        print(f'getting scanner coordinates from scanner {scanner.num}')
+        if not scanner.matches:
+            return np.array([])
+
+        scanners = []
+        for match in scanner.matches:
+            scanners.append(match.offsets)
+        scanners = np.array(scanners).T
+
+        for match in scanner.matches:
+            scanners_from_matches = self.get_list_of_scanners(\
+                self.scanners[int(match.scanner)], match.matrix, match.offsets)
+            if scanners_from_matches.shape[0] > 0:
+                scanners = np.vstack((scanners.T, scanners_from_matches)).T
+
+        return np.matmul(matrix, scanners).T + offsets
 
     def get_list_of_beacons(self, scanner, matrix, offsets):
 
@@ -181,7 +200,7 @@ def process_file(filename):
 
 if __name__ == "__main__":
 
-    filename = 'input/test.txt'
+    filename = 'input/Day19.txt'
     scanners = process_file(filename)
 
     report = Report(scanners)
@@ -189,6 +208,8 @@ if __name__ == "__main__":
     report.beacons = report.unique(report.get_list_of_beacons(report.scanners[0], IDENTITY, ZERO_OFFSET).T).T
     print(f'The answer to part one is {report.beacons.shape[1]}')
 
+    report.scanners = (report.get_list_of_scanners(report.scanners[0], IDENTITY, ZERO_OFFSET.T)).T
+    report.scanners = np.concatenate((report.scanners, np.array([ZERO_OFFSET]).T), axis=1)
     manhattan = report.get_max_manhattan_dist()
-    print(f'The answer to part tow is {manhattan}')
+    print(f'The answer to part two is {manhattan}')
 
