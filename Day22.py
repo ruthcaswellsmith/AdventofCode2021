@@ -19,28 +19,26 @@ class Action(str, Enum):
 class Range:
 
     def __init__(self, range: str, offset):
-        self.start = int(range[range.index('=')+1: range.index("..")]) + offset
+        self.start = int(range[range.index('=') + 1: range.index("..")]) + offset
         self.end = int(range[range.index('..') + 2:]) + offset
 
+class Prism:
+
+    def __init__(self, ranges):
+        self.x, self.y, self.z = [range for range in ranges]
 
 class Instruction:
 
     def __init__(self, instruction: str, part: Part):
         offset = OFFSET if part == part.PART_ONE else 0
-
         self.action, ranges = instruction.split(' ')
-        for i, range in enumerate(ranges.split(',')):
-            if i == 0:
-                self.x = Range(range, offset)
-            elif i == 1:
-                self.y = Range(range, offset)
-            else:
-                self.z = Range(range, offset)
+        prism_ranges = [Range(range, offset) for range in ranges.split(',')]
+        self.prism = Prism(prism_ranges)
 
     def is_initialization(self, part: Part):
 
         if part == Part.PART_ONE:
-            for range in [self.x, self.y, self.z]:
+            for range in [self.prism.x, self.prism.y, self.prism.z]:
                 if range.start < MIN_INIT + OFFSET or range.end > MAX_INIT + OFFSET:
                     return False
         return True
@@ -55,46 +53,95 @@ class Core:
         while instructions:
             self.instructions.append(Instruction(instructions[0], part=part))
             instructions = instructions[1:]
+        self.prisms = []
         self.on = 0
 
     def update_grid(self, step):
 
         fn = np.ones if step.action == Action.ON else np.zeros
-        prism_shape = (step.x.end - step.x.start + 1, step.y.end - step.y.start + 1, step.z.end - step.z.start + 1)
-        self.grid[step.x.start: step.x.end + 1, step.y.start: step.y.end + 1, step.z.start: step.z.end + 1] = \
-            fn(prism_shape)
+        prism_shape = (step.prism.x.end - step.prism.x.start + 1,
+                       step.prism.y.end - step.prism.y.start + 1,
+                       step.prism.z.end - step.prism.z.start + 1)
+        self.grid[step.prism.x.start:step.prism.x.end + 1,
+                step.prism.y.start:step.prism.z.end + 1,
+                step.prism.z.start:step.prism.z.end + 1] = fn(prism_shape)
         self.on = np.sum(self.grid)
 
     def process_instructions(self, part: Part):
 
         if part == Part.PART_ONE:
-           for step in self.instructions:
+            for step in self.instructions:
                 if step.is_initialization(part):
                     self.update_grid(step)
         else:
             for i, step  in enumerate(self.instructions):
-                self.__process_step(step, self.instructions[:i])
+                self.__process_step(step)
 
-    def __process_step(self, current, previous):
+    def __process_step(self, step):
 
-        print('processing step', current.action, current.x, current.y, current.z)
-        net_effect = 0
-        for x in range(current.x.start, current.x.end + 1):
-            for y in range(current.y.start, current.y.end + 1):
-                for z in range(current.z.start, current.z.end + 1):
-                    net_effect += self.__get_net_effect(x, y, z, current.action, previous)
- #                   print(x, y, x, net_effect)
-        self.on += net_effect
+        intersections = []
+        for prism in self.prisms:
+            intersections.append(self.__get_intersection(step.prism, prism))
+        # if len(intersections)>1:
+        #     print('oops')
+        for intersection in intersections:
+            if step.action == Action.ON:
+                new_prisms = self.__remove_intersection(step.prism, intersection)
+            # else:
+            #     new_prisms = self.__remove_intersection(prism, intersection)
+        self.prisms.extend(new_prisms)
 
-    def __get_net_effect(self, x, y, z, current_action, previous):
+    @staticmethod
+    def __remove_intersection(prism, intersection):
 
-        for step in reversed(previous):
-            if self.__cube_in_step(x, y, z, step):
-                if step.action == Action.ON:
-                    return 0 if current_action == Action.ON else -1
-                if step.action == Action.OFF:
-                    return 1 if current_action == Action.ON else 0
-        return 1 if current_action == Action.ON else 0
+        new_prisms = []
+        if intersection.y.start > prism.y.start:
+            ranges = [f'{prism.x.start}..{prism.x.end}', f'{prism.y.start}..{intersection.y.start}', f'{prism.z.start}..{prism.z.end}']
+            new_prisms.append(Prism(ranges))
+        if prism.y.end > intersection.y.end:
+            ranges = [f'{prism.x.start}..{prism.x.end}', f'{intersection.y.end}..{prism.y.end}', f'{prism.z.start}..{prism.z.end}']
+            new_prisms.append(Prism(ranges))
+        if intersection.z.start > prism.z.start:
+            ranges = [f'{prism.x.start}..{prism.x.end}', f'{intersection.y.start}..{intersection.y.end}', f'{prism.z.start}..{intersection.z.start}']
+            new_prisms.append(Prism(ranges))
+        if prism.z.end > intersection.z.end:
+            ranges = [f'{prism.x.start}..{prism.x.end}', f'{intersection.y.start}..{intersection.y.end}', f'{intersection.z.end}..{prism.z.end}']
+            new_prisms.append(Prism(ranges))
+        if intersection.x.start > prism.x.start:
+            ranges = [f'{prism.x.start}..{intersection.x.start}', f'{intersection.y.start}..{intersection.y.end}', f'{intersection.z.start}..{intersection.z.end}']
+            new_prisms.append(Prism(ranges))
+        if prism.x.end > intersection.x.end:
+            ranges = [f'{intersection.x.end}..{prism.x.end}', f'{intersection.y.start}..{intersection.y.end}', f'{intersection.z.start}..{intersection.z.end}']
+            new_prisms.append(Prism(ranges))
+        return new_prisms
+
+    def __get_intersection(self, prism1, prism2):
+
+        x_start, x_end = self.__get_intersection_point(prism1.x.start, prism1.x.end, prism2.x.start, prism2.x.end)
+        if x_start and x_end:
+            y_start, y_end = self.__get_intersection_point(prism1.y.start, prism1.y.end, prism2.y.start, prism2.y.end)
+            z_start, z_end = self.__get_intersection_point(prism1.z.start, prism1.z.end, prism2.z.start, prism2.z.end)
+            ranges = [f'{x_start}..{x_end}', f'{y_start}..{y_end}', f'{z_start}..{z_end}']
+            return Prism(ranges)
+
+    @staticmethod
+    def __get_intersection_point(p1_start, p1_end, p2_start, p2_end):
+
+        if p1_start in range(p2_start, p2_end + 1):
+            start = p1_start
+        elif p2_start in range(p1_start, p1_end + 1):
+            start = p2_start
+        else:
+            return None
+
+        if p1_end in range(p2_start, p2_end + 1):
+            end = p1_end
+        elif p2_end in range(p1_start, p1_end + 1):
+            end = p2_end
+        else:
+            end = None
+
+        return start, end
 
     @staticmethod
     def __cube_in_step(x, y, z, step):
@@ -111,7 +158,7 @@ def process_file(filename):
 
 if __name__ == "__main__":
 
-    filename = 'input/test22-3.txt'
+    filename = 'input/test22-1.txt'
     instructions = process_file(filename)
     core = Core(instructions, part=Part.PART_ONE)
     core.process_instructions(part=Part.PART_ONE)
@@ -119,4 +166,4 @@ if __name__ == "__main__":
 
     core = Core(instructions, part=Part.PART_TWO)
     core.process_instructions(part=Part.PART_TWO)
-    print(f'The answer to part two is {core.on}.')
+    # print(f'The answer to part two is {core.on}.')
