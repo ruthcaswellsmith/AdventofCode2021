@@ -1,8 +1,5 @@
 from enum import Enum, auto
-from typing import List, Dict
 import numpy as np
-import pandas as pd
-import random
 
 
 class Cuke(int, Enum):
@@ -34,9 +31,7 @@ class Herd:
 
         moving_counts = {}
         for type in [Cuke.EAST_MOVING, Cuke.SOUTH_MOVING]:
-
             moving_counts[type] = self.__move(type=type)
-
         return sum(list(moving_counts.values()))
 
     def __move(self, type: Cuke):
@@ -45,7 +40,6 @@ class Herd:
             shifted = self.__shift_array(self.array, Direction.WEST)
         else:
             shifted = self.__shift_array(self.array, Direction.NORTH)
-
         moving = (self.array == type) & (shifted == 0)
 
         if type == Cuke.EAST_MOVING:
