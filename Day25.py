@@ -5,9 +5,9 @@ import pandas as pd
 import random
 
 
-class Cuke(str, Enum):
-    EAST_MOVING = ">"
-    SOUTH_MOVING = "v"
+class Cuke(int, Enum):
+    EAST_MOVING = 1
+    SOUTH_MOVING = 2
 
 
 class Direction(str, Enum):
@@ -18,9 +18,9 @@ class Direction(str, Enum):
 
 class Herd:
 
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self, array: np.ndarray):
 
-        self.df = df
+        self.array = array
         self.steps = 0
         self.moving = 1000
 
@@ -42,36 +42,33 @@ class Herd:
     def __move(self, type: Cuke):
 
         if type == Cuke.EAST_MOVING:
-            shifted = self.__shift_df(self.df, Direction.WEST)
-            shifted.columns = self.df.columns
+            shifted = self.__shift_array(self.array, Direction.WEST)
         else:
-            shifted = self.__shift_df(self.df, Direction.NORTH)
-            shifted.reset_index(inplace=True, drop=True)
-        moving = (self.df == type) & (shifted == '.')
+            shifted = self.__shift_array(self.array, Direction.NORTH)
+
+        moving = (self.array == type) & (shifted == 0)
 
         if type == Cuke.EAST_MOVING:
-            moving_shifted = self.__shift_df(moving, Direction.EAST)
-            moving_shifted.columns = shifted.columns
+            moving_shifted = self.__shift_array(moving, Direction.EAST)
         else:
-            moving_shifted = self.__shift_df(moving, Direction.SOUTH)
-            moving_shifted.reset_index(inplace=True, drop=True)
+            moving_shifted = self.__shift_array(moving, Direction.SOUTH)
 
-        self.df[moving] = '.'
-        self.df[moving_shifted] = Cuke.EAST_MOVING.value if type == Cuke.EAST_MOVING else Cuke.SOUTH_MOVING.value
+        self.array[moving] = 0
+        self.array[moving_shifted] = Cuke.EAST_MOVING.value if type == Cuke.EAST_MOVING else Cuke.SOUTH_MOVING.value
 
-        return moving.sum().sum()
+        return np.sum(moving)
 
     @staticmethod
-    def __shift_df(df, direction=Direction):
+    def __shift_array(array, direction=Direction):
 
         if direction == Direction.WEST:
-            shifted = pd.concat([pd.DataFrame(df.iloc[:, 1:df.shape[1]]), df.iloc[:, 0]], axis=1)
+            shifted = np.concatenate((array[:, 1:array.shape[1]], array[:, 0][:, None]), axis=1)
         elif direction == Direction.EAST:
-            shifted = pd.concat([pd.DataFrame(df.iloc[:, df.shape[1] - 1]), df.iloc[:, 0:df.shape[1] - 1]], axis=1)
+            shifted = np.concatenate((array[:, array.shape[1]-1][:, None], array[:, 0:array.shape[1]-1]), axis=1)
         elif direction == Direction.NORTH:
-            shifted = pd.concat([df.iloc[1:df.shape[0], :], pd.DataFrame(df.iloc[0, :]).T], axis=0)
+            shifted = np.concatenate((array[1:array.shape[0], :], array[0, :][None, :]), axis=0)
         else:
-            shifted = pd.concat([pd.DataFrame(df.iloc[df.shape[0] - 1, :]).T, df.iloc[0:df.shape[0] - 1, :], ], axis=0)
+            shifted = np.concatenate((array[array.shape[0]-1,:][None, :], array[:array.shape[0] - 1, :]), axis=0)
 
         return shifted
 
@@ -84,13 +81,11 @@ def read_file(filename):
     rows = []
     while data:
 
-        rows.append(list(data[0]))
+        rows.append([0 if c == '.' else 1 if c == '>' else 2 for c in data[0]])
         data = data[1:]
 
-    df = pd.DataFrame(rows)
-    df.columns = ['Col' + str(i) for i in range(len(df.columns))]
-    return df
-
+    array = np.array(rows)
+    return array
 
 if __name__ == "__main__":
 
