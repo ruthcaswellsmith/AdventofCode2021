@@ -1,42 +1,62 @@
-import string
 from enum import Enum, auto
 import numpy as np
-from typing import List
 
 class Part(str, Enum):
     PART_ONE = auto()
     PART_TWO = auto()
+
+LARGE = 1_000_000
 
 class Grid():
 
     def __init__(self, grid: np.ndarray):
 
         self.grid = grid
-        self.x_max = grid.shape[0] - 1
-        self.y_max = grid.shape[1] - 1
-        self.min_points = 9 * self.x_max + 9 * self.y_max
-        self.min_paths = []
+        self.x_min, self.y_min = 0, 0
+        self.x_max, self.y_max = grid.shape[0] - 1, grid.shape[1] - 1
+        self.visited = np.zeros(grid.shape, dtype=bool)
+        self.distances = LARGE * np.ones(grid.shape, dtype=int)
+        self.distances[0, 0] = 0
+        self.current = (0, 0)
+        self.unvisited_neighbors = []
 
-    def travel(self, x, y, path, points):
+    def get_shortest_path(self):
 
-        points += self.grid[x, y]
-        path.append([x, y])
-        if x == self.x_max and y == self.y_max:
-            if points < self.min_points:
-                print(f'New minimum with {points} points.')
-                self.min_points = points
-                self.min_paths.append(path)
-            return
+        done = False
+        while not done:
 
-        if points > self.min_points:
-            return
+            self.__get_unvisited_neighbors()
+            self.__update_neighbors_distance()
+            self.visited[self.current[0], self.current[1]] = True
+            if not self.visited[self.x_max, self.y_max]:
+               self.__update_current()
+            else:
+                done = True
 
-        if x != self.x_max:
-            self.travel(x + 1, y, path, points)
+    def __get_unvisited_neighbors(self):
 
-        if y != self.y_max:
-            self.travel(x, y + 1, path, points)
+        self.unvisited_neighbors = []
+        x, y = self.current[0], self.current[1]
+        if x > self.x_min and not self.visited[x - 1, y]:
+            self.unvisited_neighbors.append((x - 1, y))
+        if x < self.x_max and not self.visited[x + 1, y]:
+            self.unvisited_neighbors.append((x + 1, y))
+        if y > self.y_min and not self.visited[x, y - 1]:
+            self.unvisited_neighbors.append((x, y - 1))
+        if y < self.y_max and not self.visited[x, y + 1]:
+            self.unvisited_neighbors.append((x, y + 1))
 
+    def __update_neighbors_distance(self):
+
+        for neighbor in self.unvisited_neighbors:
+            x, y = neighbor[0], neighbor[1]
+            self.distances[x, y] = min(self.distances[x, y], self.distances[self.current[0], self.current[1]] + self.grid[x, y])
+
+    def __update_current(self):
+
+        min_distance = np.min(self.distances[~self.visited])
+        min_locations = np.logical_and(self.distances == min_distance, ~self.visited)
+        self.current = (np.where(min_locations)[0][0], np.where(min_locations)[1][0])
 
 def process_file(filename):
 
@@ -54,6 +74,5 @@ if __name__ == "__main__":
 
     filename = "input/Day15.txt"
     grid = Grid(process_file(filename))
-
-    grid.travel(0, 0, [], -grid.grid[0,0])
-    print(f'The answer is {grid.min_points}.')
+    grid.get_shortest_path()
+    print(f'The answer to Part One is {grid.distances[grid.x_max, grid.y_max]}.')
