@@ -1,41 +1,37 @@
-from enum import Enum, auto
-
-PAD = 2
-
+from enum import Enum
+import numpy as np
 
 class PlayerName(str, Enum):
     PLAYER_ONE = 'Player 1'
     PLAYER_TWO = 'Player 2'
 
+POINTS = {3: 1, 4: 3, 5: 6, 6: 7, 7: 6, 8:3, 9:1}
 
-class TypeOfDie(str, Enum):
-    DETERMINISTIC = auto()
-    QUANTUM = auto()
+def get_new_players(player1, player2, turn):
 
+    p1 = Player(name=PlayerName.PLAYER_ONE,
+                active=player1.active,
+                position=player1.position,
+                score=player1.score,
+                roll=player1.roll,
+                points=turn if player1.active else 0)
+    p2 = Player(name=PlayerName.PLAYER_TWO,
+                active=player2.active,
+                position=player2.position,
+                score=player2.score,
+                roll=player2.roll,
+                points=turn if player2.active else 0)
+    return p1, p2
 
-class Die:
+class DeterministicDie:
 
     def __init__(self):
         self.value = 0
-
-
-class DeterministicDie(Die):
-
-    def __init__(self):
-        super().__init__()
         self.rolls = 0
 
     def roll(self):
         self.value += 1
         self.rolls += 1
-
-
-class QuantumDie(Die):
-
-    @staticmethod
-    def roll(num: int):
-        return num
-
 
 class Player:
 
@@ -108,48 +104,20 @@ class QuantumGame(Game):
     def __init__(self, p1: Player, p2: Player):
         super().__init__(p1=p1, p2=p2)
         self.SCORE_TO_WIN = 21
-        self.die = QuantumDie()
 
-    def play(self, wins):
+    def play(self, turns, wins):
 
         player = self.get_active_player()
-        if player.roll == 3:
-            player.move()
-            if player.score >= self.SCORE_TO_WIN:
-                self.set_winner_loser()
-                wins[self.winner.name] += 1
-                if player.name == PlayerName.PLAYER_ONE:
-                    print(f'{player.name} wins {wins[PlayerName.PLAYER_ONE]}')
-                return
-            self.switch_active_player()
-        else:
-            player.roll += 1
+        player.move()
+        if player.score >= self.SCORE_TO_WIN:
+            wins[player.name] += np.prod([POINTS[turn] for turn in turns])
+            return
+        self.switch_active_player()
 
-        p1, p2 = self.__get_new_players(points=1)
-        qg1 = QuantumGame(p1, p2)
-        qg1.play(wins)
-        p1, p2 = self.__get_new_players(points=2)
-        qg2 = QuantumGame(p1, p2)
-        qg2.play(wins)
-        p1, p2 = self.__get_new_players(points=3)
-        qg3 = QuantumGame(p1, p2)
-        qg3.play(wins)
-
-    def __get_new_players(self, points):
-
-        p1 = Player(name=PlayerName.PLAYER_ONE,
-                    active=self.p1.active,
-                    position=self.p1.position,
-                    score=self.p1.score,
-                    roll=self.p1.roll,
-                    points=self.p1.points + points if self.p1.active else 0)
-        p2 = Player(name=PlayerName.PLAYER_TWO,
-                    active=self.p2.active,
-                    position=self.p2.position,
-                    score=self.p2.score,
-                    roll=self.p2.roll,
-                    points=self.p2.points + points if self.p2.active else 0)
-        return p1, p2
+        for turn in POINTS.keys():
+            p1, p2 = get_new_players(self.p1, self.p2, turn)
+            game = QuantumGame(p1, p2)
+            game.play(turns + [turn], wins)
 
     def get_answer(self):
 
@@ -193,13 +161,16 @@ if __name__ == "__main__":
                      roll=0,
                      points=0)
     player2 = Player(name=PlayerName.PLAYER_TWO,
+
                      active=False,
                      position=positions[1],
                      score=0,
                      roll=0,
                      points=0)
-    game = QuantumGame(player1, player2)
-    wins = {PlayerName.PLAYER_ONE: 0, PlayerName.PLAYER_TWO: 0}
-    game.play(wins=wins)
-  #   print(f'The answer to part two is {game.get_answer()}')
 
+    wins = {PlayerName.PLAYER_ONE: 0, PlayerName.PLAYER_TWO: 0}
+    for turn in POINTS.keys():
+        p1, p2 = get_new_players(player1, player2, turn)
+        game = QuantumGame(p1, p2)
+        game.play([turn], wins)
+    print(f'{wins}')
