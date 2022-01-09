@@ -136,7 +136,7 @@ def process_file(filename):
 
 if __name__ == "__main__":
 
-    filename = 'input/test.txt'
+    filename = 'input/Day21.txt'
     positions = process_file(filename)
     player1 = Player(name=PlayerName.PLAYER_ONE,
                      active=True,
