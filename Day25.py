@@ -83,7 +83,7 @@ def read_file(filename):
 
 if __name__ == "__main__":
 
-    filename = 'input/test25.txt'
+    filename = 'input/Day25.txt'
 
     herd = Herd(read_file(filename))
     herd.move_until_done()
