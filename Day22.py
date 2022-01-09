@@ -1,11 +1,7 @@
 from enum import Enum, auto
+from typing import List
 
-import numpy as np
-
-SIZE = 199
-OFFSET = 51
-MIN_INIT = -50
-MAX_INIT = 50
+MAX = 50
 
 class Part(str, Enum):
     PART_ONE = auto()
@@ -18,152 +14,148 @@ class Action(str, Enum):
 
 class Range:
 
-    def __init__(self, range: str, offset):
-        self.start = int(range[range.index('=') + 1: range.index("..")]) + offset
-        self.end = int(range[range.index('..') + 2:]) + offset
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+
+    def count_lights(self):
+        return self.end - self.start + 1
+
 
 class Prism:
 
-    def __init__(self, ranges):
-        self.x, self.y, self.z = [range for range in ranges]
+    def __init__(self, xrange: Range, yrange: Range, zrange: Range):
+        self.x = xrange
+        self.y = yrange
+        self.z = zrange
+
+    def count_lights(self):
+        return self.x.count_lights() * self.y.count_lights() * self.z.count_lights()
+
 
 class Instruction:
 
-    def __init__(self, instruction: str, part: Part):
-        offset = OFFSET if part == part.PART_ONE else 0
-        self.action, ranges = instruction.split(' ')
-        prism_ranges = [Range(range, offset) for range in ranges.split(',')]
-        self.prism = Prism(prism_ranges)
+    def __init__(self, action: Action, xrange: Range, yrange: Range, zrange: Range):
+        self.action = action
+        self.prism = Prism(xrange, yrange, zrange)
 
     def is_initialization(self, part: Part):
 
         if part == Part.PART_ONE:
-            for range in [self.prism.x, self.prism.y, self.prism.z]:
-                if range.start < MIN_INIT + OFFSET or range.end > MAX_INIT + OFFSET:
+            for xyz in [self.prism.x, self.prism.y, self.prism.z]:
+                if xyz.start < -MAX or xyz.end > MAX:
                     return False
         return True
 
 class Core:
 
-    def __init__(self, instructions, part: Part):
-        if part == Part.PART_ONE:
-            self.grid = np.zeros((SIZE, SIZE, SIZE), dtype = bool)
-
-        self.instructions = []
-        while instructions:
-            self.instructions.append(Instruction(instructions[0], part=part))
-            instructions = instructions[1:]
+    def __init__(self, instructions: List[Instruction]):
+        self.instructions = instructions
         self.prisms = []
-        self.on = 0
-
-    def update_grid(self, step):
-
-        fn = np.ones if step.action == Action.ON else np.zeros
-        prism_shape = (step.prism.x.end - step.prism.x.start + 1,
-                       step.prism.y.end - step.prism.y.start + 1,
-                       step.prism.z.end - step.prism.z.start + 1)
-        self.grid[step.prism.x.start:step.prism.x.end + 1,
-                step.prism.y.start:step.prism.z.end + 1,
-                step.prism.z.start:step.prism.z.end + 1] = fn(prism_shape)
-        self.on = np.sum(self.grid)
+        self.lights = 0
 
     def process_instructions(self, part: Part):
 
-        if part == Part.PART_ONE:
-            for step in self.instructions:
-                if step.is_initialization(part):
-                    self.update_grid(step)
-        else:
-            for i, step  in enumerate(self.instructions):
-                self.__process_step(step)
+        for ind, step in enumerate(self.instructions):
+            if step.is_initialization(part) and step.action == Action.ON:
+                remaining = [] if ind == len(self.instructions) else self.instructions[ind+1:]
+                self.prisms.extend(self.__process_step(step, remaining))
 
-    def __process_step(self, step):
+    def __process_step(self, step, remaining):
 
-        intersections = []
+        outersections = [step.prism]
+        while remaining:
+            ind = 0
+            while ind < len(outersections):
+                new = self.__get_outersection(outersections[ind], remaining[0].prism)
+                outersections = outersections[:ind] + new + outersections[ind+1:]
+                ind = ind + len(new)
+            remaining = remaining[1:]
+
+        return outersections
+
+    def print_prisms(self):
         for prism in self.prisms:
-            intersections.append(self.__get_intersection(step.prism, prism))
-        # if len(intersections)>1:
-        #     print('oops')
-        for intersection in intersections:
-            if step.action == Action.ON:
-                new_prisms = self.__remove_intersection(step.prism, intersection)
-            # else:
-            #     new_prisms = self.__remove_intersection(prism, intersection)
-        self.prisms.extend(new_prisms)
+            print(prism.x.start, prism.x.end, prism.y.start, prism.y.end, prism.z.start, prism.z.end)
+
+    def count_lights(self):
+
+        for prism in self.prisms:
+            self.lights += prism.count_lights()
 
     @staticmethod
-    def __remove_intersection(prism, intersection):
+    def __get_outersection(prism1, prism2):
 
-        new_prisms = []
-        if intersection.y.start > prism.y.start:
-            ranges = [f'{prism.x.start}..{prism.x.end}', f'{prism.y.start}..{intersection.y.start}', f'{prism.z.start}..{prism.z.end}']
-            new_prisms.append(Prism(ranges))
-        if prism.y.end > intersection.y.end:
-            ranges = [f'{prism.x.start}..{prism.x.end}', f'{intersection.y.end}..{prism.y.end}', f'{prism.z.start}..{prism.z.end}']
-            new_prisms.append(Prism(ranges))
-        if intersection.z.start > prism.z.start:
-            ranges = [f'{prism.x.start}..{prism.x.end}', f'{intersection.y.start}..{intersection.y.end}', f'{prism.z.start}..{intersection.z.start}']
-            new_prisms.append(Prism(ranges))
-        if prism.z.end > intersection.z.end:
-            ranges = [f'{prism.x.start}..{prism.x.end}', f'{intersection.y.start}..{intersection.y.end}', f'{intersection.z.end}..{prism.z.end}']
-            new_prisms.append(Prism(ranges))
-        if intersection.x.start > prism.x.start:
-            ranges = [f'{prism.x.start}..{intersection.x.start}', f'{intersection.y.start}..{intersection.y.end}', f'{intersection.z.start}..{intersection.z.end}']
-            new_prisms.append(Prism(ranges))
-        if prism.x.end > intersection.x.end:
-            ranges = [f'{intersection.x.end}..{prism.x.end}', f'{intersection.y.start}..{intersection.y.end}', f'{intersection.z.start}..{intersection.z.end}']
-            new_prisms.append(Prism(ranges))
-        return new_prisms
+        # We can have as many as six prisms
+        prisms = []
 
-    def __get_intersection(self, prism1, prism2):
+        # If we have no overlap between x, y, or z, then return all of prism1
+        if (max(prism1.x.start, prism2.x.start) > min(prism1.x.end, prism2.x.end)) or \
+                (max(prism1.y.start, prism2.y.start) > min(prism1.y.end, prism2.y.end)) or \
+                (max(prism1.z.start, prism2.z.start) > min(prism1.z.end, prism2.z.end)):
+            return [prism1]
 
-        x_start, x_end = self.__get_intersection_point(prism1.x.start, prism1.x.end, prism2.x.start, prism2.x.end)
-        if x_start and x_end:
-            y_start, y_end = self.__get_intersection_point(prism1.y.start, prism1.y.end, prism2.y.start, prism2.y.end)
-            z_start, z_end = self.__get_intersection_point(prism1.z.start, prism1.z.end, prism2.z.start, prism2.z.end)
-            ranges = [f'{x_start}..{x_end}', f'{y_start}..{y_end}', f'{z_start}..{z_end}']
-            return Prism(ranges)
+        # First do all x
+        rx = Range(prism1.x.start, prism1.x.end)
 
-    @staticmethod
-    def __get_intersection_point(p1_start, p1_end, p2_start, p2_end):
+        # Combine with all y, outersections of z
+        ry = Range(prism1.y.start, prism1.y.end)
+        if prism1.z.start < prism2.z.start:
+            rza = Range(prism1.z.start, prism2.z.start - 1)
+            prisms.append(Prism(rx, ry, rza))
+        if prism2.z.end < prism1.z.end:
+            rzb = Range(prism2.z.end + 1, prism1.z.end)
+            prisms.append(Prism(rx, ry, rzb))
 
-        if p1_start in range(p2_start, p2_end + 1):
-            start = p1_start
-        elif p2_start in range(p1_start, p1_end + 1):
-            start = p2_start
-        else:
-            return None
+        # get intersection of z
+        rz = Range(max(prism1.z.start, prism2.z.start), min(prism1.z.end, prism2.z.end))
 
-        if p1_end in range(p2_start, p2_end + 1):
-            end = p1_end
-        elif p2_end in range(p1_start, p1_end + 1):
-            end = p2_end
-        else:
-            end = None
+        # Combine it with all z and outersection of y
+        if prism1.y.start < prism2.y.start:
+            rya = Range(prism1.y.start, prism2.y.start - 1)
+            prisms.append(Prism(rx, rya, rz))
+        if prism2.y.end < prism1.y.end:
+            ryb = Range(prism2.y.end + 1, prism1.y.end)
+            prisms.append(Prism(rx, ryb, rz))
 
-        return start, end
+        ry = Range(max(prism1.y.start, prism2.y.start), min(prism1.y.end, prism2.y.end))
+        if prism1.x.start < prism2.x.start <= prism1.x.end:
+            rxa = Range(prism1.x.start, prism2.x.start - 1)
+            prisms.append(Prism(rxa, ry, rz))
+        if prism1.x.start <= prism2.x.end < prism1.x.end:
+            rxb = Range(prism2.x.end + 1, prism1.x.end)
+            prisms.append(Prism(rxb, ry, rz))
 
-    @staticmethod
-    def __cube_in_step(x, y, z, step):
-        return True if x in range(step.x.start, step.x.end + 1) and\
-                y in range(step.y.start, step.y.end + 1) and\
-                z in range(step.z.start, step.z.end + 1) else False
+        return prisms
+
 
 def process_file(filename):
 
     with open(filename, 'r') as f:
         data = f.read().rstrip('\n').split('\n')
 
-    return data
+    instructions = []
+    while data:
+        starts, ends = [], []
+        action, ranges = data[0].split(' ')
+        for xyz in ranges.split(','):
+            starts.append(int(xyz[xyz.index('=') + 1: xyz.index("..")]))
+            ends.append(int(xyz[xyz.index('..') + 2:]))
+        instructions.append(Instruction(action, Range(starts[0], ends[0]), Range(starts[1], ends[1]), Range(starts[2], ends[2])))
+        data = data[1:]
+
+    return instructions
 
 if __name__ == "__main__":
 
-    filename = 'input/test22-1.txt'
+    filename = 'input/Day22.txt'
     instructions = process_file(filename)
-    core = Core(instructions, part=Part.PART_ONE)
+    core = Core(instructions)
     core.process_instructions(part=Part.PART_ONE)
-    print(f'The answer to part one is {core.on}.')
+    core.count_lights()
+    print(f'The answer to part one is {core.lights}.')
 
-    core = Core(instructions, part=Part.PART_TWO)
+    core = Core(instructions)
     core.process_instructions(part=Part.PART_TWO)
-    # print(f'The answer to part two is {core.on}.')
+    core.count_lights()
+    print(f'The answer to part two is {core.lights}.')
