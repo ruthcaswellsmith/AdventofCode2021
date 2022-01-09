@@ -79,15 +79,10 @@ class ALU:
         # Now compare the value of z
         return True if alu.variables['z'] < ZLIMIT[digit] else False
 
-    def find_valid_number(self, number: str):
-
-#        if number and int(number)%11_111 == 0:
-        print(number)
+    def find_valid_number(self, number: str, valid_numbers: List):
 
         if len(number) == DIGITS:
-            print('got a 14-digit number')
-            print(number)
-            exit(100)
+            return number
 
         digit = len(number) - 1
         if digit in [2, 3, 6, 8, 10, 11, 12]:
@@ -96,49 +91,16 @@ class ALU:
                 input = [int(c)]
                 input.extend([parameter for parameter in alu.parameters[i]])
                 alu.process_program(input=input)
-            next_digit = alu.variables['z']%26 + alu.parameters[digit+1][1]
-            if next_digit in range(0,10):
-                self.find_valid_number(number + str(next_digit))
+            next_digit = alu.variables['z'] % 26 + alu.parameters[digit+1][1]
+            if next_digit in range(1, 10):
+                valid_number = self.find_valid_number(number=number + str(next_digit), valid_numbers=valid_numbers)
+                if valid_number:
+                    valid_numbers.append(valid_number)
         else:
             for next_digit in range(9, 0, -1):
-               self.find_valid_number(number + str(next_digit))
-
-    def find_valid_zs(self):
-
-        digit_13 = self.__get_possibilities_x_equal_w(13, [['', 0]])
-        print(len(digit_13))
-        digit_12 = self.__get_possibilities_x_equal_w(12, digit_13)
-        print(len(digit_12))
-        digit_11 = self.__get_possibilities_x_equal_w(11, digit_12) + \
-                   self.__get_possibilities_x_not_equal_w(11, digit_12)
-        print(len(digit_11))
-        digit_10 = self.__get_possibilities_x_not_equal_w(10, digit_11)
-        print(len(digit_10))
-        digit_9 = self.__get_possibilities_x_equal_w(9, digit_10) + \
-                   self.__get_possibilities_x_not_equal_w(9, digit_10)
-        print(len(digit_9))
-        digit_8 = self.__get_possibilities_x_equal_w(8, digit_9)
-        print(len(digit_8))
-
-    def __get_possibilities_x_equal_w(self, digit, next_digit):
-
-        this_digit = []
-        for num, z in next_digit:
-            for w in range(1, 10):
-                this_digit.append([str(w) + num, w - self.parameters[digit][1] + 26*z])
-        return this_digit
-
-    def __get_possibilities_x_not_equal_w(self, digit, next_digit):
-
-        this_digit = []
-        for num, z in next_digit:
-            for w in range(1, 10):
-                z = (z - self.parameters[digit][2] - w) / self.parameters[digit][0]
-                if int(z) == z:
-                    this_digit.append([str(w) + num, z])
-
-        return this_digit
-
+                valid_number = self.find_valid_number(number=number + str(next_digit), valid_numbers=valid_numbers)
+                if valid_number:
+                    valid_numbers.append(valid_number)
 
 def read_instructions(filename):
 
@@ -176,17 +138,9 @@ if __name__ == "__main__":
     filename = 'input/Day24.txt'
     parameters = read_parameters(filename)
 
-    # alu = ALU(instructions=monad, parameters=parameters)
-    # alu.find_valid_number(number='')
-    # print(alu.valid_numbers)
-
-#    Test the number we found
-    number = '39924989499969'
     alu = ALU(instructions=monad, parameters=parameters)
-    for i, c in enumerate(number):
-        input = [int(c)]
-        input.extend([parameter for parameter in alu.parameters[i]])
-        print(input)
-        alu.process_program(input=input)
-        print(alu.variables)
+    valid_numbers = []
+    alu.find_valid_number(number='', valid_numbers=valid_numbers)
 
+    print(f'The answer to part one is {valid_numbers[1]}.')
+    print(f'The answer to part two is {valid_numbers[-1]}.')
