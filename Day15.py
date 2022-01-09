@@ -70,9 +70,31 @@ def process_file(filename):
 
     return grid
 
+def add_num(element, i):
+    return element + i if element + i < 10 else (element + i) % 9
+
+add_one_vectorized = np.vectorize(add_num)
+
+def create_grid_p2(grid_p1):
+
+    rows, cols = grid_p1.shape
+    grid_p2 = np.zeros((5*rows, 5*cols), dtype=int)
+    for i in range(5):
+        starting_grid = add_one_vectorized(grid_p1, i * 1)
+        for j in range(5):
+            grid_p2[i*rows: (i+1)*rows, j*cols: (j+1)*cols] = add_one_vectorized(starting_grid, j * 1)
+    return grid_p2
+
+
 if __name__ == "__main__":
 
     filename = "input/Day15.txt"
-    grid = Grid(process_file(filename))
-    grid.get_shortest_path()
-    print(f'The answer to Part One is {grid.distances[grid.x_max, grid.y_max]}.')
+    grid_p1 = process_file(filename)
+    grid1 = Grid(grid_p1)
+    grid1.get_shortest_path()
+    print(f'The answer to Part One is {grid1.distances[grid1.x_max, grid1.y_max]}.')
+
+    grid_p2 = create_grid_p2(grid_p1)
+    grid2 = Grid(grid_p2)
+    grid2.get_shortest_path()
+    print(f'The answer to Part Two is {grid2.distances[grid2.x_max, grid2.y_max]}.')
