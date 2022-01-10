@@ -4,21 +4,6 @@ import numpy as np
 import random
 
 DIGITS = 14
-ZLIMIT = {}
-ZLIMIT[0] = 26**1
-ZLIMIT[1] = 26**2
-ZLIMIT[2] = 26**3
-ZLIMIT[3] = 26**3
-ZLIMIT[4] = 26**2
-ZLIMIT[5] = 26**3
-ZLIMIT[6] = 26**4
-ZLIMIT[7] = 26**4
-ZLIMIT[8] = 26**4
-ZLIMIT[9] = 26**3
-ZLIMIT[10] = 26**3
-ZLIMIT[11] = 26**2
-ZLIMIT[12] = 26**1
-ZLIMIT[13] = 26**0
 
 class Action(str, Enum):
     INPUT = 'inp'
@@ -66,18 +51,6 @@ class ALU:
                     self.variables[var] = val1 % val2
                 elif step.action == Action.EQUAL:
                     self.variables[var] = 1 if val1 == val2 else 0
-
-    def __is_valid(self, number):
-
-        digit = len(number) - 1
-        # Run instructions for current number
-        alu = ALU(self.instructions, self.parameters)
-        for i, c in enumerate(number):
-            input = [int(c)]
-            input.extend([parameter for parameter in alu.parameters[i]])
-            alu.process_program(input=input)
-        # Now compare the value of z
-        return True if alu.variables['z'] < ZLIMIT[digit] else False
 
     def find_valid_number(self, number: str, valid_numbers: List):
 
