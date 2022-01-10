@@ -110,7 +110,7 @@ class Core:
         # get intersection of z
         rz = Range(max(prism1.z.start, prism2.z.start), min(prism1.z.end, prism2.z.end))
 
-        # Combine it with all z and outersection of y
+        # Combine it with all x and outersection of y
         if prism1.y.start < prism2.y.start:
             rya = Range(prism1.y.start, prism2.y.start - 1)
             prisms.append(Prism(rx, rya, rz))
@@ -118,6 +118,7 @@ class Core:
             ryb = Range(prism2.y.end + 1, prism1.y.end)
             prisms.append(Prism(rx, ryb, rz))
 
+        # Combine with intersection of y and outersection of x
         ry = Range(max(prism1.y.start, prism2.y.start), min(prism1.y.end, prism2.y.end))
         if prism1.x.start < prism2.x.start <= prism1.x.end:
             rxa = Range(prism1.x.start, prism2.x.start - 1)
